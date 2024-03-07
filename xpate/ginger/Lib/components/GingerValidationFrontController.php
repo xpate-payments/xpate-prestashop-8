@@ -51,7 +51,7 @@ class GingerValidationFrontController extends \ModuleFrontController
                 'error_message' => $errorMessage
             ]
         );
-        $this->setTemplate('module:'.GingerBankConfig::BANK_PREFIX.'/views/templates/front/error.tpl');
+        $this->setTemplate('module:'.GingerPSPConfig::PSP_PREFIX.'/views/templates/front/error.tpl');
     }
 
     private function processCompletedStatus()
@@ -113,7 +113,7 @@ class GingerValidationFrontController extends \ModuleFrontController
                 'error_message' => $this->errorReason
             ]
         );
-        $this->setTemplate('module:'.GingerBankConfig::BANK_PREFIX.'/views/templates/front/cancelled.tpl');
+        $this->setTemplate('module:'.GingerPSPConfig::PSP_PREFIX.'/views/templates/front/cancelled.tpl');
     }
 
     private function processErrorStatus()
@@ -126,7 +126,7 @@ class GingerValidationFrontController extends \ModuleFrontController
                 'error_message' => $this->errorReason
             ]
         );
-        $this->setTemplate('module:'.GingerBankConfig::BANK_PREFIX.'/views/templates/front/error.tpl');
+        $this->setTemplate('module:'.GingerPSPConfig::PSP_PREFIX.'/views/templates/front/error.tpl');
     }
 
     /**
@@ -151,7 +151,7 @@ class GingerValidationFrontController extends \ModuleFrontController
         if (\Tools::getValue('id_cart'))
         {
             \Tools::redirect($this->context->link->getModuleLink(
-                GingerBankConfig::BANK_PREFIX,
+                GingerPSPConfig::PSP_PREFIX,
                 'processing',
                 [
                     'order_id' => \Tools::getValue('order_id'),

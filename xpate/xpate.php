@@ -1,6 +1,6 @@
 <?php
 
-use Lib\components\GingerBankConfig;
+use Lib\components\GingerPSPConfig;
 use Lib\components\GingerConfigurableTrait;
 use Lib\components\GingerPlugin;
 
@@ -18,8 +18,8 @@ class xpate extends GingerPlugin
 
     public function __construct()
     {
-        $this->name = GingerBankConfig::BANK_PREFIX;
-        $this->method_id = GingerBankConfig::BANK_PREFIX;
+        $this->name = GingerPSPConfig::PSP_PREFIX;
+        $this->method_id = GingerPSPConfig::PSP_PREFIX;
         parent::__construct();
     }
 

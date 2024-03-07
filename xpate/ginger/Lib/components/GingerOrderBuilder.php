@@ -199,7 +199,7 @@ class GingerOrderBuilder
             addressType: 'billing',
             postalCode: $this->getPostCode(),
             country: $this->getCountry(),
-            address: $this->getSecondAddress() ?? null
+            address: $this->getSecondAddress() ?: $this->getFirstAddress()
         );
     }
 
@@ -235,9 +235,6 @@ class GingerOrderBuilder
     {
         $getCurrencyStrategy = ComponentRegistry::get(GetCurrencyStrategy::class);
         return $getCurrencyStrategy->getOrderCurrency($this->cart->id_currency);
-//        return $getCurrencyStrategy->getOrderCurrency()
-//        $currencyOrder = new \Currency($this->cart->id_currency);
-//        return new Currency($currencyOrder->iso_code);
     }
 
     /**
@@ -245,7 +242,7 @@ class GingerOrderBuilder
      */
     public function getWebhookUrl()
     {
-        return \_PS_BASE_URL_ . \__PS_BASE_URI__ . 'modules/ginger/webhook.php';
+        return \_PS_BASE_URL_ . \__PS_BASE_URI__ . 'modules/xpate/ginger/webhook.php';
     }
 
     /**
@@ -263,7 +260,7 @@ class GingerOrderBuilder
 
     public function getPluginName()
     {
-        return GingerBankConfig::PLUGIN_NAME;
+        return GingerPSPConfig::PLUGIN_NAME;
     }
 
     public function getPlatformName()
@@ -309,7 +306,7 @@ class GingerOrderBuilder
             ));
     }
     public function getAfterPayToC(){
-        return filter_input(INPUT_POST, GingerBankConfig::BANK_PREFIX.'afterpay_terms_conditions');
+        return filter_input(INPUT_POST, GingerPSPConfig::PSP_PREFIX.'afterpay_terms_conditions');
     }
 
     /**

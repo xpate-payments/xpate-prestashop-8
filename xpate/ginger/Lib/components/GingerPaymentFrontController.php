@@ -27,7 +27,7 @@ class GingerPaymentFrontController extends \ModuleFrontController
             $this->context->smarty->assign('error_message', $errorMessage);
             $this->context->smarty->assign('template', _PS_THEME_DIR_ . 'templates/page.tpl');
             $this->context->smarty->assign('shop_name', \Configuration::get('PS_SHOP_NAME'));
-            $this->setTemplate('module:'.GingerBankConfig::BANK_PREFIX.'/views/templates/front/error.tpl');
+            $this->setTemplate('module:'.GingerPSPConfig::PSP_PREFIX.'/views/templates/front/error.tpl');
         }
 
     }

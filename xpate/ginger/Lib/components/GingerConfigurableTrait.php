@@ -50,7 +50,7 @@ trait GingerConfigurableTrait
                 \Configuration::updateValue($templateForVariable.'_COUNTRY_ACCESS', trim(\Tools::getValue($templateForVariable.'_COUNTRY_ACCESS')));
             }
 
-            if ($this->method_id == GingerBankConfig::BANK_PREFIX)
+            if ($this->method_id == GingerPSPConfig::PSP_PREFIX)
             {
                 \Configuration::updateValue('GINGER_API_KEY', trim(\Tools::getValue('GINGER_API_KEY')));
                 \Configuration::updateValue('GINGER_KLARNAPAYLATER_TEST_API_KEY', trim(\Tools::getValue('GINGER_KLARNAPAYLATER_TEST_API_KEY')));
@@ -72,7 +72,7 @@ trait GingerConfigurableTrait
     {
         if (\Tools::isSubmit('btnSubmit'))
         {
-            if (!\Configuration::get('GINGER_API_KEY') && $this->name != GingerBankConfig::BANK_PREFIX)
+            if (!\Configuration::get('GINGER_API_KEY') && $this->name != GingerPSPConfig::PSP_PREFIX)
             {
                 $this->_postErrors[] = $this->l('API key should be set.');
             }
@@ -84,10 +84,10 @@ trait GingerConfigurableTrait
         $fields_form = array(
             'form' => array(
                 'legend' => array(
-                    'title' => $this->l(GingerBankConfig::BANK_LABEL.' Settings'),
+                    'title' => $this->l(GingerPSPConfig::PSP_LABEL.' Settings'),
                     'icon' => 'icon-envelope'
                 ),
-                'input' => ($this->method_id == GingerBankConfig::BANK_PREFIX) ? $this->getLibraryFields() : $this->getPaymentMethodsFields(),
+                'input' => ($this->method_id == GingerPSPConfig::PSP_PREFIX) ? $this->getLibraryFields() : $this->getPaymentMethodsFields(),
                 'submit' => array(
                     'title' => $this->l('Save'),
                 )
@@ -108,7 +108,7 @@ trait GingerConfigurableTrait
         $helper->currentIndex = $this->context->link->getAdminLink('AdminModules', false).'&configure='.$this->name.'&tab_module='.$this->tab.'&module_name='.$this->name;
         $helper->token = \Tools::getAdminTokenLite('AdminModules');
         $helper->tpl_vars = array(
-            'fields_value' => ($this->method_id == GingerBankConfig::BANK_PREFIX) ? $this->getLibraryFieldsValue() : $this->getPaymentMethodsFieldsValue(),
+            'fields_value' => ($this->method_id == GingerPSPConfig::PSP_PREFIX) ? $this->getLibraryFieldsValue() : $this->getPaymentMethodsFieldsValue(),
             'languages' => $this->context->controller->getLanguages(),
             'id_language' => $this->context->language->id
         );
@@ -170,15 +170,15 @@ trait GingerConfigurableTrait
                 'label' => $this->l('IP address(es) for testing.'),
                 'name' => $ipValidationVar,
                 'required' => true,
-                'desc' => $this->l('You can specify specific IP addresses for which '.GingerBankConfig::GINGER_BANK_LABELS[$this->method_id].' is visible, for example if you want to test '.GingerBankConfig::GINGER_BANK_LABELS[$this->method_id].' you can type IP addresses as 128.0.0.1, 255.255.255.255. If you fill in nothing, then, '.GingerBankConfig::GINGER_BANK_LABELS[$this->method_id].' is visible to all IP addresses.'),
+                'desc' => $this->l('You can specify specific IP addresses for which '.GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id].' is visible, for example if you want to test '.GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id].' you can type IP addresses as 128.0.0.1, 255.255.255.255. If you fill in nothing, then, '.GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id].' is visible to all IP addresses.'),
 
             ] : null,
             ($this instanceof GingerCountryValidation) ? [
                 'type' => 'text',
-                'label' => $this->l('Countries available for '.GingerBankConfig::GINGER_BANK_LABELS[$this->method_id].'.'),
+                'label' => $this->l('Countries available for '.GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id].'.'),
                 'name' => $countryAccessValidationVar,
                 'required' => true,
-                'desc' => $this->l('To allow '.GingerBankConfig::GINGER_BANK_LABELS[$this->method_id].' to be used for any other country just add its country code (in ISO 2 standard) to the "Countries available for '.GingerBankConfig::GINGER_BANK_LABELS[$this->method_id].'" field. Example: BE, NL, FR If field is empty then '.GingerBankConfig::GINGER_BANK_LABELS[$this->method_id].' will be available for all countries.'),
+                'desc' => $this->l('To allow '.GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id].' to be used for any other country just add its country code (in ISO 2 standard) to the "Countries available for '.GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id].'" field. Example: BE, NL, FR If field is empty then '.GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id].' will be available for all countries.'),
             ] : null,
         ];
     }

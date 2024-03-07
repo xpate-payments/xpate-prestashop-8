@@ -40,8 +40,8 @@ class GingerPlugin extends \PaymentModule
 
     public function __construct()
     {
-        $this->displayName = $this->l(GingerBankConfig::BANK_LABEL . ' ' . GingerBankConfig::GINGER_BANK_LABELS[$this->method_id]);
-        $this->description = $this->l('Accept payments for your products using '. GingerBankConfig::GINGER_BANK_LABELS[$this->method_id]);
+        $this->displayName = $this->l(GingerPSPConfig::PSP_LABEL . ' ' . GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id]);
+        $this->description = $this->l('Accept payments for your products using '. GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id]);
         $this->tab = 'payments_gateways';
         $this->version = "1.4.6";
         $this->author = 'Ginger Payments';
@@ -50,7 +50,7 @@ class GingerPlugin extends \PaymentModule
         $this->currencies = true;
         $this->currencies_mode = 'checkbox';
         $this->bootstrap = true;
-        GingerBankConfig::registerStrategies();
+        GingerPSPConfig::registerStrategies();
         parent::__construct();
 		
         try {
@@ -68,12 +68,16 @@ class GingerPlugin extends \PaymentModule
             $this->warning = $this->l('No currency has been set for this module.');
         }
     }
+    public function getGingerClient()
+    {
+        return $this->gingerClient;
+    }
 
     public function install()
     {
         if (!parent::install()) return false;
 
-        if ($this->name == GingerBankConfig::BANK_PREFIX)
+        if ($this->name == GingerPSPConfig::PSP_PREFIX)
         {
             if (!$this->createTables()) return false; //Create table in db
 
@@ -119,7 +123,7 @@ class GingerPlugin extends \PaymentModule
             return false;
         }
 
-        if ($this->name == GingerBankConfig::BANK_PREFIX)
+        if ($this->name == GingerPSPConfig::PSP_PREFIX)
         {
             if (!\Configuration::deleteByName('GINGER_API_KEY')) return false;
 
@@ -219,7 +223,7 @@ class GingerPlugin extends \PaymentModule
         );
 
         $paymentOption = new PaymentOption;
-        $paymentOption->setCallToActionText($this->l('Pay by ' . GingerBankConfig::BANK_LABEL . ' ' . GingerBankConfig::GINGER_BANK_LABELS[$this->method_id]));
+        $paymentOption->setCallToActionText($this->l('Pay by ' . GingerPSPConfig::PSP_LABEL . ' ' . GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id]));
         $paymentOption->setLogo(\Media::getMediaPath(__PS_BASE_URI__.'modules/' .$this->name. '/'.$this->name.'.svg'));
         $paymentOption->setAction($this->context->link->getModuleLink($this->name, 'payment'));
         $paymentOption->setModuleName($this->name);
@@ -454,7 +458,7 @@ class GingerPlugin extends \PaymentModule
     public function sendPrivateMessage($bankReference)
     {
         $new_message = new \Message();
-        $new_message->message = $this->l(GingerBankConfig::BANK_LABEL.' '.GingerBankConfig::GINGER_BANK_LABELS[$this->method_id].' Reference: ') . $bankReference;
+        $new_message->message = $this->l(GingerPSPConfig::PSP_LABEL.' '.GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id].' Reference: ') . $bankReference;
         $new_message->id_order = $this->currentOrder;
         $new_message->private = 1;
         $new_message->add();
@@ -464,10 +468,10 @@ class GingerPlugin extends \PaymentModule
     {
 		$db = \Db::getInstance();
 
-        $dropQuery = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.GingerBankConfig::BANK_PREFIX.'`';
+        $dropQuery = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.GingerPSPConfig::PSP_PREFIX.'`';
         $db->execute($dropQuery);
 		$createQuery = '
-    CREATE TABLE IF NOT EXISTS `'._DB_PREFIX_.GingerBankConfig::BANK_PREFIX.'` (
+    CREATE TABLE IF NOT EXISTS `'._DB_PREFIX_.GingerPSPConfig::PSP_PREFIX.'` (
         `id` int(11) NOT NULL AUTO_INCREMENT,
         `id_cart` int(11) DEFAULT NULL,
         `id_order` int(11) DEFAULT NULL,

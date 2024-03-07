@@ -1,2 +1,2 @@
-# Xpate plugin for Prestashop 1.7.x
+# Xpate plugin for Prestashop 8.x.x
 This is the offical Xpate plugin.

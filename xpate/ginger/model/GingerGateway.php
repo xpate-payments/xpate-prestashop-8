@@ -4,7 +4,7 @@
 namespace Model;
 
 
-use Lib\components\GingerBankConfig;
+use Lib\components\GingerPSPConfig;
 
 class GingerGateway
 {
@@ -39,7 +39,7 @@ class GingerGateway
     private function _deleteByCartId($cartId)
     {
         try {
-            $this->db->Execute("DELETE FROM `" . \_DB_PREFIX_ .GingerBankConfig::BANK_PREFIX. "` WHERE `id_cart` = " . $cartId);
+            $this->db->Execute("DELETE FROM `" . \_DB_PREFIX_ .GingerPSPConfig::PSP_PREFIX. "` WHERE `id_cart` = " . $cartId);
         } catch (\Exception $e) {
 
         }
@@ -66,7 +66,7 @@ class GingerGateway
                 array_push($fields, '`reference`');
                 array_push($values, '"' . $reference . '"');
             }
-            $this->db->Execute("INSERT INTO `" . \_DB_PREFIX_ .GingerBankConfig::BANK_PREFIX."` (" . implode(',', $fields) . ") VALUES (" . implode(',', $values) . ");");
+            $this->db->Execute("INSERT INTO `" . \_DB_PREFIX_ .GingerPSPConfig::PSP_PREFIX."` (" . implode(',', $fields) . ") VALUES (" . implode(',', $values) . ");");
         } catch (\Exception $e) {
 
         }
@@ -82,7 +82,7 @@ class GingerGateway
     {
         $row = $this->db->getRow(
             sprintf(
-                'SELECT * FROM `%s` WHERE `id_cart` = \'%s\'', _DB_PREFIX_.GingerBankConfig::BANK_PREFIX, $cartId
+                'SELECT * FROM `%s` WHERE `id_cart` = \'%s\'', _DB_PREFIX_.GingerPSPConfig::PSP_PREFIX, $cartId
             )
         );
         $ginger = new Ginger();
@@ -103,7 +103,7 @@ class GingerGateway
     {
         $row = $this->db->getRow(
             sprintf(
-                'SELECT * FROM `%s` WHERE `id_order` = \'%s\'', _DB_PREFIX_.GingerBankConfig::BANK_PREFIX, $orderID
+                'SELECT * FROM `%s` WHERE `id_order` = \'%s\'', _DB_PREFIX_.GingerPSPConfig::PSP_PREFIX, $orderID
             )
         );
         $ginger = new Ginger();
@@ -128,7 +128,7 @@ class GingerGateway
     {
         try {
             $this->db->Execute(
-                "UPDATE  `" . \_DB_PREFIX_ .GingerBankConfig::BANK_PREFIX."` "
+                "UPDATE  `" . \_DB_PREFIX_ .GingerPSPConfig::PSP_PREFIX."` "
                 . "SET `id_order` =  $orderId  "
                 . "WHERE `id_cart` = " . $cartId
             );
