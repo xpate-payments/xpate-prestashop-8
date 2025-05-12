@@ -1,7 +1,6 @@
 <?php
 
-use Ginger\Ginger;
-use Lib\Helper;
+use Lib\components\GingerClientBuilder;
 
 class xpateProcessingModuleFrontController extends ModuleFrontController
 {
@@ -44,16 +43,9 @@ class xpateProcessingModuleFrontController extends ModuleFrontController
       */
     public function checkOrderStatus()
     {
-        $ginger = Ginger::createClient(
-		  	Helper::GINGER_ENDPOINT,
-		  	\Configuration::get('EMS_PAY_APIKEY'),
-		  	(null !== \Configuration::get('EMS_PAY_BUNDLE_CA')) ?
-			    [
-				  CURLOPT_CAINFO => Helper::getCaCertPath()
-			    ] : []
-	  		);
-	  $ginger_order = $ginger->getOrder(\Tools::getValue('order_id'));
-        return $ginger_order['status'];
+        $client = GingerClientBuilder::gingerBuildClient($this->module->method_id);
+        $ginger_order = $client->getOrder(\Tools::getValue('order_id'));
+        return $ginger_order->getStatus()->get();
     }
 
     /**

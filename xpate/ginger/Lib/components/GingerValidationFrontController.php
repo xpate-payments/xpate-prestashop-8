@@ -69,6 +69,7 @@ class GingerValidationFrontController extends \ModuleFrontController
     {
         $cart_id = (int) \Tools::getValue('id_cart');
         $order = \Order::getIdByCartId((int)($cart_id));
+
         if (isset($cart_id) && empty($order)) { // order has not been created yet (by webhook)
             $cart = $this->context->cart;
             $customer = new \Customer($cart->id_customer);
@@ -86,7 +87,6 @@ class GingerValidationFrontController extends \ModuleFrontController
                 $customer->secure_key
             );
             $order = \Order::getIdByCartId((int)($cart_id));
-
             if (isset($order) && is_numeric($order)) {
                 $this->module->updateOrderId($cart_id, $order);
             }

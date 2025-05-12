@@ -22,8 +22,6 @@ use GingerPluginSdk\Properties\Locale;
 use GingerPluginSdk\Properties\Percentage;
 use GingerPluginSdk\Properties\RawCost;
 use GingerPluginSdk\Properties\VatPercentage;
-use Lib\interfaces\GetCurrencyStrategy;
-use Lib\interfaces\GingerIssuers;
 use Lib\interfaces\GingerTermsAndConditions;
 
 class GingerOrderBuilder
@@ -60,16 +58,11 @@ class GingerOrderBuilder
             transactions: $this->getOrderTransactions(),
             customer: $this->getCustomerInformation(),
             orderLines: $this->getOrderLines($this->cart),
-            client: $this->getExtra(),
+            client: $this->getClient(),
             webhook_url: $this->getWebhookURL(),
             return_url: $this->getReturnURL(),
             merchantOrderId: $this->getMerchantOrderId(),
             description: $this->getOrderDescription());
-    }
-
-    public function getSelectedIssuer(): string
-    {
-        return filter_input(INPUT_POST, 'issuerid');
     }
 
     /**
@@ -83,10 +76,7 @@ class GingerOrderBuilder
             lastName: $this->getLastName(),
             emailAddress: $this->getEmailAddress(),
             gender: $this->getGender(),
-            phoneNumbers: new PhoneNumbers(
-                $this->getPhoneNumbers()->get(0),
-                $this->getPhoneNumbers()->get(1)
-            ),
+            phoneNumbers: $this->getPhoneNumbers(),
             birthdate: $this->getBirthday() ? new Birthdate($this->getBirthday()) : null,
             ipAddress: $this->getIPAddress(),
             locale: $this->getLocale(),
@@ -125,7 +115,6 @@ class GingerOrderBuilder
 
     public function getLocale()
     {
-//        return new Locale('en_NL');
         return new Locale($this->locale);
     }
 
@@ -151,13 +140,10 @@ class GingerOrderBuilder
 
     public function getPhoneNumbers()
     {
-
         $phone_numbers = new PhoneNumbers();
-        $this->prestashopAddress->phone ? $phone_numbers->addPhoneNumber($this->prestashopAddress->phone) :
-            $phone_numbers->addPhoneNumber('');
+        $this->prestashopAddress->phone ? $phone_numbers->addPhoneNumber($this->prestashopAddress->phone) : null;
 
-        $this->prestashopAddress->phone_mobile ? $phone_numbers->addPhoneNumber($this->prestashopAddress->phone_mobile) :
-            $phone_numbers->addPhoneNumber('');
+        $this->prestashopAddress->phone_mobile ? $phone_numbers->addPhoneNumber($this->prestashopAddress->phone_mobile) :null;
         return $phone_numbers;
     }
 
@@ -180,7 +166,11 @@ class GingerOrderBuilder
 
     public function getSecondAddress()
     {
-        return $this->prestashopAddress->address2;
+        if ($this->prestashopAddress->address2 == ""){
+            return $this->prestashopAddress->address1;
+        }else{
+            return $this->prestashopAddress->address2;
+        }
     }
 
     public function getCustomerAddress()
@@ -199,7 +189,7 @@ class GingerOrderBuilder
             addressType: 'billing',
             postalCode: $this->getPostCode(),
             country: $this->getCountry(),
-            address: $this->getSecondAddress() ?: $this->getFirstAddress()
+            address: $this->getSecondAddress()
         );
     }
 
@@ -233,8 +223,8 @@ class GingerOrderBuilder
      */
     public function getOrderCurrency()
     {
-        $getCurrencyStrategy = ComponentRegistry::get(GetCurrencyStrategy::class);
-        return $getCurrencyStrategy->getOrderCurrency($this->cart->id_currency);
+        $currency = new \Currency($this->cart->id_currency);
+        return new Currency($currency->iso_code);
     }
 
     /**
@@ -265,7 +255,7 @@ class GingerOrderBuilder
 
     public function getPlatformName()
     {
-        return 'PrestaShop8.1';
+        return 'PrestaShop8';
     }
 
     public function getPlatformVersion()
@@ -278,7 +268,7 @@ class GingerOrderBuilder
         return $this->paymentMethod->currentOrder;
     }
 
-    public function getExtra(): Client
+    public function getClient(): Client
     {
         return new Client(
             userAgent: $this->getUserAgent(),
@@ -295,15 +285,22 @@ class GingerOrderBuilder
      */
     public function getOrderTransactions(): Transactions
     {
+        $args = [
+            'paymentMethod' => $this->getPaymentMethod(),
+            'paymentMethodDetails' => new PaymentMethodDetails(array_filter([
+                'verified_terms_of_service' => ($this->paymentMethod instanceof GingerTermsAndConditions)
+                    ? $this->getAfterPayToC()
+                    : ''
+            ]))
+        ];
+
+        if (\Configuration::get('GINGER_CREDITCARD_CAPTURE_MANUAL')) {
+            $args['capture_mode'] = 'manual';
+        }
+
         return new Transactions(
-            new Transaction(
-                paymentMethod: $this->getPaymentMethod(),
-                paymentMethodDetails: new PaymentMethodDetails(array_filter([
-                    'issuer_id' => ($this->paymentMethod instanceof GingerIssuers) ? $this->getSelectedIssuer() : '',
-                    'verified_terms_of_service' => ($this->paymentMethod instanceof GingerTermsAndConditions) ?
-                        $this->getAfterPayToC() : ''
-                ])),
-            ));
+            new Transaction(...$args)
+        );
     }
     public function getAfterPayToC(){
         return filter_input(INPUT_POST, GingerPSPConfig::PSP_PREFIX.'afterpay_terms_conditions');
@@ -397,3 +394,5 @@ class GingerOrderBuilder
         );
     }
 }
+
+

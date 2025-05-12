@@ -60,7 +60,6 @@ if ($order_details)
         }
 
         $order = new Order((int) $row['id_order']);
-
         switch ($order_details->getStatus()->get()) {
             case 'new':
             case 'processing':
@@ -68,25 +67,36 @@ if ($order_details)
                 break;
 
             case 'completed':
+                $transaction = $order_details->getCurrentTransaction()->toArray();
+                if (isset($transaction['transaction_type']) && $transaction['transaction_type'] == 'authorization') {
+                    $order_status = (int) \Configuration::get('GINGER_AUTHORIZED');
+                    break;
+                }
                 $order_status = (int) Configuration::get('PS_OS_PAYMENT');
                 break;
 
             case 'error':
                 $order_status = (int) Configuration::get('PS_OS_ERROR');
                 break;
-
             case 'cancelled':
             case 'expired':
                 $order_status = (int) Configuration::get('PS_OS_CANCELED');
                 break;
         }
+        if ($order->current_state != $order_status) {
+            echo "WEBHOOK: updating status, old status was: " . $order->current_state . "\n";
+            $new_history = new OrderHistory();
+            $new_history->id_order = (int) $order->id;
 
-        echo "WEBHOOK: updating status, old status was: " . $order->current_state . "\n";
+            $context = Context::getContext();
+            $context->currency ??= new Currency((int) Configuration::get('PS_CURRENCY_DEFAULT'));
+            $context->language ??= new Language((int) Configuration::get('PS_LANG_DEFAULT'));
+            $context->shop ??= new Shop((int) Configuration::get('PS_SHOP_DEFAULT'));
+            Shop::setContext(Shop::CONTEXT_SHOP, $context->shop->id);
 
-        $new_history = new OrderHistory();
-        $new_history->id_order = (int) $order->id;
-        $new_history->changeIdOrderState($order_status, $order, true);
-//        $new_history->addWithemail(true);
+            $new_history->changeIdOrderState( $order_status, $order, true);
+            $new_history->add();
+        }
 
     }  else {
         echo "WEBHOOK: id_order is empty\n";
@@ -98,7 +108,8 @@ if ($order_details)
             echo "WEBHOOK: promote cart to order\n";
 
             $gingerPaymentMethod->validateOrder(
-                $row['id_cart'], Configuration::get('PS_OS_PAYMENT'),
+                $row['id_cart'],
+                \Configuration::get('PS_OS_PREPARATION'),
                 $order_details->getAmount()->get() / 100,
                 GingerPSPConfig::GINGER_PSP_LABELS[$order_details->getCurrentTransaction()->getPaymentMethod()->get()],
                 null,
@@ -113,5 +124,9 @@ if ($order_details)
 
         Db::getInstance()->update(GingerPSPConfig::PSP_PREFIX, array("id_order" => $id_order),
             '`ginger_order_id` = "'.Db::getInstance()->escape($ginger_order_id).'"');
+
+        $gingerPaymentMethod->updateGingerOrder($ginger_order_id, $id_order,$order_details->getAmount()->get());
+
+
     }
 }

@@ -50,17 +50,25 @@ trait GingerConfigurableTrait
                 \Configuration::updateValue($templateForVariable.'_COUNTRY_ACCESS', trim(\Tools::getValue($templateForVariable.'_COUNTRY_ACCESS')));
             }
 
+            if ($this->method_id == 'credit-card')
+            {
+                \Configuration::updateValue($templateForVariable.'_CAPTURE_MANUAL', trim(\Tools::getValue($templateForVariable.'_CAPTURE_MANUAL')));
+            }
+
             if ($this->method_id == GingerPSPConfig::PSP_PREFIX)
             {
                 \Configuration::updateValue('GINGER_API_KEY', trim(\Tools::getValue('GINGER_API_KEY')));
-                \Configuration::updateValue('GINGER_KLARNAPAYLATER_TEST_API_KEY', trim(\Tools::getValue('GINGER_KLARNAPAYLATER_TEST_API_KEY')));
-                \Configuration::updateValue('GINGER_AFTERPAY_TEST_API_KEY', trim(\Tools::getValue('GINGER_AFTERPAY_TEST_API_KEY')));
                 \Configuration::updateValue('GINGER_BUNDLE_CA', \Tools::getValue('GINGER_BUNDLE_CA'));
 
-//                $this->cacheCurrencyList();
+                if (array_key_exists('afterpay',GingerPSPConfig::GINGER_PSP_LABELS)){
+                    \Configuration::updateValue('GINGER_AFTERPAY_TEST_API_KEY', trim(\Tools::getValue('GINGER_AFTERPAY_TEST_API_KEY')));
+                }
+                if (array_key_exists('klarna-pay-later',GingerPSPConfig::GINGER_PSP_LABELS)){
+                    \Configuration::updateValue('GINGER_KLARNAPAYLATER_TEST_API_KEY', trim(\Tools::getValue('GINGER_KLARNAPAYLATER_TEST_API_KEY')));
+                }
             }
         }
-        $this->_html .= $this->displayConfirmation($this->l('Settings updated'));
+        $this->_html .= $this->displayConfirmation($this->trans('Settings updated',[],'Modules.Xpate.Admin'));
     }
 
     protected function displayginger()
@@ -74,7 +82,7 @@ trait GingerConfigurableTrait
         {
             if (!\Configuration::get('GINGER_API_KEY') && $this->name != GingerPSPConfig::PSP_PREFIX)
             {
-                $this->_postErrors[] = $this->l('API key should be set.');
+                $this->_postErrors[] = $this->trans('API key should be set.',[],'Modules.Xpate.Admin');
             }
         }
     }
@@ -84,12 +92,12 @@ trait GingerConfigurableTrait
         $fields_form = array(
             'form' => array(
                 'legend' => array(
-                    'title' => $this->l(GingerPSPConfig::PSP_LABEL.' Settings'),
+                    'title' => $this->trans('%label% Settings',['%label%'=>$this->trans(GingerPSPConfig::PSP_LABEL, [], 'Modules.Xpate.Admin')],'Modules.Xpate.Admin'),
                     'icon' => 'icon-envelope'
                 ),
                 'input' => ($this->method_id == GingerPSPConfig::PSP_PREFIX) ? $this->getLibraryFields() : $this->getPaymentMethodsFields(),
                 'submit' => array(
-                    'title' => $this->l('Save'),
+                    'title' => $this->trans('Save', [], 'Modules.Xpate.Admin'),
                 )
             ),
         );
@@ -119,16 +127,16 @@ trait GingerConfigurableTrait
 
     public function getLibraryFields()
     {
-        return [
+        $fields = [
             [
                 'type' => 'checkbox',
                 'name' => 'GINGER',
-                'desc' => $this->l('Resolves issue when curl.cacert path is not set in PHP.ini'),
+                'desc' => $this->trans('Resolves issue when curl.cacert path is not set in PHP.ini', [], 'Modules.Xpate.Admin'),
                 'values' => array(
                     'query' => array(
                         array(
                             'id' => 'BUNDLE_CA',
-                            'name' => $this->l('Use cURL CA bundle'),
+                            'name' => $this->trans('Use cURL CA bundle', [], 'Modules.Xpate.Admin'),
                             'val' => '1'
                         ),
                     ),
@@ -138,25 +146,30 @@ trait GingerConfigurableTrait
             ],
             [
                 'type' => 'text',
-                'label' => $this->l('API Key'),
+                'label' => $this->trans('API Key', [], 'Modules.Xpate.Admin'),
                 'name' => 'GINGER_API_KEY',
                 'required' => true
             ],
-            [
+        ];
+        if (array_key_exists('afterpay', GingerPSPConfig::GINGER_PSP_LABELS)){
+            $fields[] = [
                 'type' => 'text',
-                'label' => $this->l('Klarna Test API Key'),
-                'name' => 'GINGER_KLARNAPAYLATER_TEST_API_KEY',
-                'required' => false,
-                'desc' => $this->l('The Test API Key is Applicable only for Klarna. Remove when not used.')
-            ],
-            [
-                'type' => 'text',
-                'label' => $this->l('Afterpay Test API Key'),
+                'label' => $this->trans('Afterpay Test API Key', [], 'Modules.Xpate.Admin'),
                 'name' => 'GINGER_AFTERPAY_TEST_API_KEY',
                 'required' => false,
-                'desc' => $this->l('The Test API Key is Applicable only for Afterpay. Remove when not used.')
-            ],
-        ];
+                'desc' => $this->trans('The Test API Key is Applicable only for Afterpay. Remove when not used.',[], 'Modules.Xpate.Admin')
+            ];
+        }
+        if (array_key_exists('klarna-pay-later', GingerPSPConfig::GINGER_PSP_LABELS)){
+            $fields[] =             [
+                'type' => 'text',
+                'label' => $this->trans('Klarna Test API Key', [], 'Modules.Xpate.Admin'),
+                'name' => 'GINGER_KLARNAPAYLATER_TEST_API_KEY',
+                'required' => false,
+                'desc' => $this->trans('The Test API Key is Applicable only for Klarna. Remove when not used.',[], 'Modules.Xpate.Admin')
+            ];
+        }
+        return $fields;
     }
 
     public function getPaymentMethodsFields()
@@ -164,42 +177,74 @@ trait GingerConfigurableTrait
         $countryAccessValidationVar = 'GINGER_'.strtoupper(str_replace('-','',$this->method_id)).'_COUNTRY_ACCESS';
         $ipValidationVar = 'GINGER_'.strtoupper(str_replace('-','',$this->method_id)).'_SHOW_FOR_IP';
 
+        $methodLabel = $this->trans(GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id], [], 'Modules.Xpate.Admin');
+
         return [
             ($this instanceof GingerIPValidation) ? [
                 'type' => 'text',
-                'label' => $this->l('IP address(es) for testing.'),
+                'label' => $this->trans('IP address(es) for testing.',[], 'Modules.Xpate.Admin'),
                 'name' => $ipValidationVar,
                 'required' => true,
-                'desc' => $this->l('You can specify specific IP addresses for which '.GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id].' is visible, for example if you want to test '.GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id].' you can type IP addresses as 128.0.0.1, 255.255.255.255. If you fill in nothing, then, '.GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id].' is visible to all IP addresses.'),
-
+                'desc' => $this->trans('You can specify specific IP addresses for which %method% is visible, for example if you want to test %method% you can type IP addresses as 128.0.0.1, 255.255.255.255. If you fill in nothing, then, %method% is visible to all IP addresses.',
+                    ['%method%'=> $methodLabel],'Modules.Xpate.Admin'
+                ),
             ] : null,
             ($this instanceof GingerCountryValidation) ? [
                 'type' => 'text',
-                'label' => $this->l('Countries available for '.GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id].'.'),
+                'label' => $this->trans('Countries available for %method%.',['%method%'=>$methodLabel], 'Modules.Xpate.Admin'),
                 'name' => $countryAccessValidationVar,
                 'required' => true,
-                'desc' => $this->l('To allow '.GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id].' to be used for any other country just add its country code (in ISO 2 standard) to the "Countries available for '.GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id].'" field. Example: BE, NL, FR If field is empty then '.GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id].' will be available for all countries.'),
+                'desc' => $this->trans('To allow %method% to be used for any other country just add its country code (in ISO 2 standard) to the "Countries available for %method%" field. Example: BE, NL, FR If field is empty then %method% will be available for all countries.',
+                ['%method%'=> $methodLabel],'Modules.Xpate.Admin'
+                ),
+            ] : null,
+            ($this->method_id == 'credit-card') ? [
+                'type' => 'checkbox',
+                'label' => $this->trans('Capture on complete', [], 'Modules.Xpate.Admin'),
+                'name' => 'GINGER',
+                'values' => array(
+                    'query' => array(
+                        array(
+                            'id' => 'CREDITCARD_CAPTURE_MANUAL',
+                            'name' => $this->trans('Captures payment when an order is marked as complete', [], 'Modules.Xpate.Admin'),
+                            'val' => '1'
+                        ),
+                    ),
+                    'id' => 'id',
+                    'name' => 'name'
+                )
             ] : null,
         ];
     }
 
     public function getLibraryFieldsValue()
     {
-        return [
+        $values = [
             'GINGER_API_KEY' => \Tools::getValue('GINGER_API_KEY', \Configuration::get('GINGER_API_KEY')),
-            'GINGER_KLARNAPAYLATER_TEST_API_KEY' => \Tools::getValue('GINGER_KLARNAPAYLATER_TEST_API_KEY', \Configuration::get('GINGER_KLARNAPAYLATER_TEST_API_KEY')),
-            'GINGER_AFTERPAY_TEST_API_KEY' => \Tools::getValue('GINGER_AFTERPAY_TEST_API_KEY', \Configuration::get('GINGER_AFTERPAY_TEST_API_KEY')),
             'GINGER_BUNDLE_CA' => \Tools::getValue('GINGER_BUNDLE_CA', \Configuration::get('GINGER_BUNDLE_CA')),
         ];
+
+        if (array_key_exists('klarna-pay-later', GingerPSPConfig::GINGER_PSP_LABELS)) {
+            $values['GINGER_KLARNAPAYLATER_TEST_API_KEY'] = \Tools::getValue('GINGER_KLARNAPAYLATER_TEST_API_KEY', \Configuration::get('GINGER_KLARNAPAYLATER_TEST_API_KEY'));
+        }
+
+        if (array_key_exists('afterpay', GingerPSPConfig::GINGER_PSP_LABELS)) {
+            $values['GINGER_AFTERPAY_TEST_API_KEY'] = \Tools::getValue('GINGER_AFTERPAY_TEST_API_KEY', \Configuration::get('GINGER_AFTERPAY_TEST_API_KEY'));
+        }
+
+        return $values;
     }
     public function getPaymentMethodsFieldsValue()
     {
         $countryAccessValidationVar = 'GINGER_'.strtoupper(str_replace('-','',$this->method_id)).'_COUNTRY_ACCESS';
         $ipValidationVar = 'GINGER_'.strtoupper(str_replace('-','',$this->method_id)).'_SHOW_FOR_IP';
+        $captureManualVar = 'GINGER_'.strtoupper(str_replace('-','',$this->method_id)).'_CAPTURE_MANUAL';
 
         return [
             $ipValidationVar => ($this instanceof GingerIPValidation) ? \Tools::getValue($ipValidationVar, \Configuration::get($ipValidationVar)) : null,
-            $countryAccessValidationVar => ($this instanceof GingerCountryValidation) ? \Tools::getValue($countryAccessValidationVar, \Configuration::get($countryAccessValidationVar)) : null
+            $countryAccessValidationVar => ($this instanceof GingerCountryValidation) ? \Tools::getValue($countryAccessValidationVar, \Configuration::get($countryAccessValidationVar)) : null,
+            $captureManualVar => ($this->method_id == 'credit-card' ) ? \Tools::getValue($captureManualVar, \Configuration::get($captureManualVar)) : null
+
         ];
     }
 

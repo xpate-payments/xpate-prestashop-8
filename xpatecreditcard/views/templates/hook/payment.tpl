@@ -1,5 +1,5 @@
 <style>
-a.emspaycreditcard::after {
+a.xpatecreditcard::after {
       display: block;
       content: "\f054";
       position: absolute;
@@ -12,15 +12,15 @@ a.emspaycreditcard::after {
       width: 14px;
       color: #777; 
 }
-a.emspaycreditcard {
-      background: url({$base_dir}modules/emspaycreditcard/logo_bestelling.png) 15px 12px no-repeat
+a.xpatecreditcard {
+      background: url({$base_dir}modules/xpatecreditcard/logo_bestelling.png) 15px 12px no-repeat
 }
 </style>
 <div class="row">
       <div class="col-xs-12">
             <p class="payment_module">
-                  <a class="emspaycreditcard" href="{$link->getModuleLink('emspaycreditcard', 'payment')|escape:'html'}" title="{l s='Pay by Mastercard, VISA, Maestro or V PAY' mod='emspaycreditcard'}">
-                        {l s='Pay by Mastercard, VISA, Maestro or V PAY' mod='emspaycreditcard'}</span>
+                  <a class="xpatecreditcard" href="{$link->getModuleLink('xpatecreditcard', 'payment')|escape:'html'}" title="{l s='Pay by Mastercard, VISA, Maestro or V PAY' d='Modules.Xpatecreditcard.Payment'}">
+                        {l s='Pay by Mastercard, VISA, Maestro or V PAY' d='Modules.Xpatecreditcard.Payment'}</span>
                   </a>
             </p>
       </div>

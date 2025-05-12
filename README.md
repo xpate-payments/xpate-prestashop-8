@@ -1,2 +1,4 @@
-# Xpate plugin for Prestashop 8.x.x
-This is the offical Xpate plugin.
+# XPATE plugin for Prestashop 8.x.x
+
+## Version number
+Version 1.0.1

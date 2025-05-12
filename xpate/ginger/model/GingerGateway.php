@@ -16,7 +16,7 @@ class GingerGateway
     }
 
     /**
-     * save instance to bank table
+     * save instance to PSP table
      *
      * @param Ginger $ginger
      */

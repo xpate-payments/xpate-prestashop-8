@@ -1,9 +1,8 @@
 <?php
 namespace Lib\components;
 
-
-
 use Address;
+use Exception;
 use GingerPluginSdk\Collections\Transactions;
 use GingerPluginSdk\Entities\Order;
 use GingerPluginSdk\Properties\Amount;
@@ -13,9 +12,7 @@ use Lib\interfaces\GingerCountryValidation;
 use Lib\interfaces\GingerCustomFieldsOnCheckout;
 use Lib\interfaces\GingerIdentificationPay;
 use Lib\interfaces\GingerIPValidation;
-use Lib\interfaces\GingerIssuers;
 use Model\Ginger;
-use OrderState;
 use Model\GingerGateway;
 use GingerPluginSdk\Exceptions\EmptyApiKeyException;
 use PrestaShop\PrestaShop\Core\Addon\Module\ModuleManagerBuilder;
@@ -34,23 +31,23 @@ class GingerPlugin extends \PaymentModule
     protected $gingerClient;
     public $method_id;
     protected $extra_mail_vars;
-    protected $useDemoApiKey = false;
     protected $_html = '';
-    protected $strategy;
 
     public function __construct()
     {
-        $this->displayName = $this->l(GingerPSPConfig::PSP_LABEL . ' ' . GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id]);
-        $this->description = $this->l('Accept payments for your products using '. GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id]);
+        $this->label = $this->trans(GingerPSPConfig::PSP_LABEL, [], 'Modules.Xpate.Admin');
+        $this->method_name = $this->trans(GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id], [], 'Modules.Xpate.Admin');
+
+        $this->displayName = $this->trans('%label% %method%', ['%label%' => $this->label, '%method%'=>$this->method_name], 'Modules.Xpate.Admin');
+        $this->description = $this->trans('Accept payments for your products using %method%', ['%method%'=>$this->method_name], 'Modules.Xpate.Admin');
         $this->tab = 'payments_gateways';
-        $this->version = "1.4.6";
+        $this->version = "1.0.1";
         $this->author = 'Ginger Payments';
         $this->controllers = array('payment', 'validation');
         $this->is_eu_compatible = 1;
         $this->currencies = true;
         $this->currencies_mode = 'checkbox';
         $this->bootstrap = true;
-        GingerPSPConfig::registerStrategies();
         parent::__construct();
 		
         try {
@@ -59,13 +56,13 @@ class GingerPlugin extends \PaymentModule
             $this->warning = $exception->getMessage();
         }
 
-        $this->confirmUninstall = $this->l('Are you sure about removing these details?');
+        $this->confirmUninstall = $this->trans('Are you sure about removing these details?',[], 'Modules.Xpate.Admin');
 
 
 
         if (!count(\Currency::checkPaymentCurrencies($this->id)))
         {
-            $this->warning = $this->l('No currency has been set for this module.');
+            $this->warning = $this->trans('No currency has been set for this module.',[], 'Modules.Xpate.Admin');
         }
     }
     public function getGingerClient()
@@ -102,10 +99,7 @@ class GingerPlugin extends \PaymentModule
             if (!$this->registerHook('header')) return false;
         }
 
-        if ($this instanceof GingerCapturable)
-        {
-            if (!$this->registerHook('actionOrderStatusUpdate')) return false;
-        }
+        if (!$this->registerHook('actionOrderStatusUpdate')) return false;
 
         if($this instanceof GingerCountryValidation)
         {
@@ -184,7 +178,6 @@ class GingerPlugin extends \PaymentModule
         $orderNext = new Order(
             currency: $order->getOrderLines()->getLine()->getCurrency(),
             amount: new Amount($amount),
-            transactions: new Transactions($order->getCurrentTransaction()),
             customer: $order->getCustomer(),
             id: $GingerOrderId,
             merchantOrderId: (string) $PSOrderId
@@ -218,12 +211,11 @@ class GingerPlugin extends \PaymentModule
                 'this_path' => $this->_path,
                 'this_path_bw' => $this->_path,
                 'this_path_ssl' => \Tools::getShopDomainSsl(true, true).__PS_BASE_URI__.'modules/'.$this->name.'/',
-                'issuers' => ($this instanceof GingerIssuers) ? $this->_getIssuers() : null,
             ])
         );
 
         $paymentOption = new PaymentOption;
-        $paymentOption->setCallToActionText($this->l('Pay by ' . GingerPSPConfig::PSP_LABEL . ' ' . GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id]));
+        $paymentOption->setCallToActionText($this->trans('Pay by %label% %method%',['%label%'=>$this->label,'%method%'=>$this->method_name], 'Modules.Xpate.Admin'));
         $paymentOption->setLogo(\Media::getMediaPath(__PS_BASE_URI__.'modules/' .$this->name. '/'.$this->name.'.svg'));
         $paymentOption->setAction($this->context->link->getModuleLink($this->name, 'payment'));
         $paymentOption->setModuleName($this->name);
@@ -256,7 +248,7 @@ class GingerPlugin extends \PaymentModule
         try {
             $this->orderBuilder = new GingerOrderBuilder($this, $cart, $locale);
             $gingerOrder = $this->gingerClient->sendOrder($this->orderBuilder ->getBuiltOrder());
-        } catch (\Exception $exception) {
+        } catch (Exception $exception) {
             return \Tools::displayError($exception->getMessage());
         }
 
@@ -343,7 +335,7 @@ class GingerPlugin extends \PaymentModule
 
         $this->orderBuilder = new GingerOrderBuilder($this, $params['order']);
         $ginger = $this->getOrderFromDB($params['order']->id_cart);
-        $this->updateGingerOrder($ginger->getGingerOrderId(), $params['order']->id, $params['order']->total_paid);
+        $this->updateGingerOrder($ginger->getGingerOrderId(), $params['order']->id, $params['order']->total_paid*100);
 
         if($this instanceof GingerIdentificationPay)
         {
@@ -393,19 +385,65 @@ class GingerPlugin extends \PaymentModule
 
     public function hookActionOrderStatusUpdate($params)
     {
+        $newStatus = (int) $params['newOrderStatus']->id;
+        $orderId = (int) $params['id_order'];
 
-        $ginger = (new GingerGateway(\Db::getInstance()))->getByOrderId($params['id_order']);
-        if (intval($params['newOrderStatus']->id) === intval(\Configuration::get('PS_OS_SHIPPING')))
-        {
+        $ginger = (new GingerGateway(\Db::getInstance()))->getByOrderId($orderId);
+        $gingerOrderID = $ginger->getGingerOrderId();
+
+        if ($this instanceof GingerCapturable && $newStatus === (int) \Configuration::get('PS_OS_SHIPPING')){
             try {
-                $gingerOrderID = $ginger->getGingerOrderId();
                 $gingerOrder = $this->gingerClient->getOrder($gingerOrderID);
 
-                if (!$gingerOrder->getCurrentTransaction()->toArray()['is_capturable']) return true; //order is not able to be captured
+                if (!$gingerOrder->getCurrentTransaction()->isCapturable()) return true; //order is not able to be captured
                 if (in_array('has-captures',$gingerOrder->getFlags()->toArray())) return true; //order is already captured
 
                 $this->gingerClient->captureOrderTransaction($gingerOrderID);
-            } catch (\Exception $exception) {
+            } catch (Exception $exception) {
+                \Tools::displayError($exception->getMessage());
+                return false;
+            }
+            return true;
+        }
+
+        if ($newStatus === (int) \Configuration::get('PS_OS_PAYMENT'))
+        {
+            if (!\Configuration::get('GINGER_CREDITCARD_CAPTURE_MANUAL')) {
+                return true;
+            }
+            try {
+                $gingerOrder = $this->gingerClient->getOrder($gingerOrderID);
+
+                if (!$gingerOrder->getCurrentTransaction()->isCapturable()) return true; //order is not able to be captured
+                if ($gingerOrder->getFlags() && in_array('has-captures', (array) $gingerOrder->getFlags()->get())) return true; //order is already captured
+
+                $this->gingerClient->captureOrderTransaction($gingerOrderID);
+            }catch (Exception $exception) {
+                \Tools::displayError($exception->getMessage());
+                return false;
+            }
+
+        }elseif ($newStatus === (int) \Configuration::get('PS_OS_CANCELED')){
+            if (!\Configuration::get('GINGER_CREDITCARD_CAPTURE_MANUAL')) {
+                return true;
+            }
+            try {
+                $gingerOrder = $this->gingerClient->getOrder($gingerOrderID);
+                if (!$gingerOrder->getStatus()->get() == 'completed') return true;
+
+                $transaction = $gingerOrder->getCurrentTransaction()->toArray();
+
+                if (!isset($transaction['transaction_type']) || !$transaction['transaction_type'] == 'authorization') return true;
+
+                if (in_array('has-captures', (array) $gingerOrder->getFlags()?->get()) || in_array('has-voids', (array) $gingerOrder->getFlags()?->get())) return true;
+
+                $apiClient = $this->gingerClient->getApiClient();
+                $apiClient->send('POST', sprintf('/orders/%s/transactions/%s/voids/amount', $gingerOrderID, $gingerOrder->getCurrentTransaction()->getId()->get()),
+                    ['amount' => $gingerOrder->getAmount()->get(), 'description' => sprintf(
+                        "Void %s of the full %s on order %s ",
+                        $gingerOrder->getAmount()->get(), $gingerOrder->getAmount()->get(), $gingerOrder->getMerchantOrderId()->get()
+                    )]);
+            }catch (Exception $exception) {
                 \Tools::displayError($exception->getMessage());
                 return false;
             }
@@ -447,9 +485,24 @@ class GingerPlugin extends \PaymentModule
     /**
      * Refund function
      */
-    public function productRefund($orderId,$partialRefund)
+    public function productRefund($order, $partialRefund, $id_cart)
     {
-        $this->gingerClient->refundOrder($orderId,$partialRefund);
+        $query = \Db::getInstance()->getRow("SELECT ginger_order_id FROM `" . _DB_PREFIX_ . GingerPSPConfig::PSP_PREFIX."` WHERE `id_cart` = " . $id_cart);
+        if (!$query || !isset($query['ginger_order_id'])) return false;
+
+        $gingerOrderID = $query['ginger_order_id'];
+        try {
+            $this->gingerClient->refundOrder($gingerOrderID, $partialRefund);
+
+            $newHistory = new \OrderHistory();
+            $newHistory->id_order = (int)$order->id;
+            $newHistory->changeIdOrderState(\Configuration::get('PS_OS_REFUND'), $order, true);
+            if (!$newHistory->add()) return false;
+            return true;
+        } catch (Exception $e) {
+            \PrestaShopLogger::addLog('Ginger refund error: ' . $e->getMessage() . ' for order ID ' . $order->id, 3);
+            return false;
+        }
     }
 
     /**
@@ -458,7 +511,7 @@ class GingerPlugin extends \PaymentModule
     public function sendPrivateMessage($bankReference)
     {
         $new_message = new \Message();
-        $new_message->message = $this->l(GingerPSPConfig::PSP_LABEL.' '.GingerPSPConfig::GINGER_PSP_LABELS[$this->method_id].' Reference: ') . $bankReference;
+        $new_message->message = $this->trans('%label% %method% Reference: ',['%label'=> $this->label, '%method%' => $this->method_name],'Modules.Xpate.Admin') . $bankReference;
         $new_message->id_order = $this->currentOrder;
         $new_message->private = 1;
         $new_message->add();
@@ -489,58 +542,52 @@ class GingerPlugin extends \PaymentModule
 
     public function createOrderState()
     {
-        if (!\Configuration::get('GINGER_PENDING'))
+        if (!\Configuration::get('GINGER_AUTHORIZED'))
         {
-            $orderState = new OrderState();
-            $orderState->name = array();
-
-            foreach (\Language::getLanguages() as $language)
-            {
-                if (\Tools::strtolower( $language['iso_code'] ) == 'nl')
-                    $orderState->name[$language['id_lang']] = 'Wachten op betaling';
-                else
-                    $orderState->name[$language['id_lang']] = 'Waiting for payment';
-            }
-
+            $orderState = new \OrderState();
             $orderState->send_email = false;
-            $orderState->color = '#9f00a7';
+            $orderState->color = '#3498D8';
             $orderState->hidden = false;
             $orderState->delivery = false;
             $orderState->logable = false;
             $orderState->invoice = false;
             $orderState->paid = false;
 
-            if (!$orderState->add()) return false;
 
-            \Configuration::updateValue('GINGER_PENDING', (int)$orderState->id);
-        }
+            $translations = [
+                'en' => 'Authorized',
+                'de' => 'Autorisiert',
+                'fr' => 'Autorisé',
+                'es' => 'Autorizado',
+                'it' => 'Autorizzato',
+                'nl' => 'Geautoriseerd',
+                'pt' => 'Autorizado',
+                'sv' => 'Auktoriserad',
+                'da' => 'Autoriseret',
+                'no' => 'Autorisert',
+                'fi' => 'Valtuutettu',
+                'pl' => 'Autoryzowany',
+                'cs' => 'Autorizované stránky',
+                'sk' => 'Autorizovaná stránka',
+                'hu' => 'Engedélyezett',
+                'ro' => 'Autorizat',
+                'el' => 'Εξουσιοδοτημένο',
+                'bg' => 'Оторизиран',
+                'lv' => 'Autorizēts',
+                'lt' => 'Įgaliotas',
+                'et' => 'Lubatud',
+            ];
 
-        if (!\Configuration::get('GINGER_ERROR'))
-        {
-            $orderState = new OrderState();
-            $orderState->name = array();
-
-            foreach (\Language::getLanguages() as $language)
-            {
-                if (\Tools::strtolower($language['iso_code']) == 'nl')
-                    $orderState->name[$language['id_lang']] = 'Betaling mislukt';
-                else
-                    $orderState->name[$language['id_lang']] = 'Payment Failed';
+            $languages = \Language::getLanguages(false);
+            foreach ($languages as $lang) {
+                $iso = $lang['iso_code'];
+                $orderState->name[$lang['id_lang']] = $translations[$iso] ?? 'Authorized';
             }
 
-            $orderState->send_email = false;
-            $orderState->color = '#FF0000';
-            $orderState->hidden = false;
-            $orderState->delivery = false;
-            $orderState->logable = false;
-            $orderState->invoice = false;
-            $orderState->paid = false;
-
             if (!$orderState->add()) return false;
 
-            \Configuration::updateValue('GINGER_ERROR', (int)$orderState->id);
+            \Configuration::updateValue('GINGER_AUTHORIZED', (int)$orderState->id);
         }
-
         return true;
     }
 
@@ -550,18 +597,12 @@ class GingerPlugin extends \PaymentModule
      */
     public function hookOrderSlip($params)
     {
-
-        try {
-
-            $partialRefund = current($params['productList'])['total_refunded_tax_incl'];
-            $this->productRefund(
-                $params['order']->id,
-                new Amount($partialRefund));
-
-        } catch (\Exception $e) {
-            \Tools::displayError($e->getMessage());
-            return false;
-        }
+        $order = new \Order($params['order']->id);
+        $partialRefund = current($params['productList'])['total_refunded_tax_incl'];
+        $this->productRefund(
+            $order,
+            new Amount($partialRefund * 100),
+            $params['order']->id_cart);
     }
 
     /**
@@ -605,3 +646,5 @@ class GingerPlugin extends \PaymentModule
         return strlen($productURL) > 0 ? $productURL : null;
     }
 }
+
+

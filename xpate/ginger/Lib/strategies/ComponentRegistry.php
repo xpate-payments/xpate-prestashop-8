@@ -1,7 +1,6 @@
 <?php
-namespace Lib\components;
+namespace Lib\strategies;
 use Lib\interfaces\BaseStrategy;
-use Lib\interfaces\GetIssuersStrategy;
 
 class ComponentRegistry
 {

@@ -9,7 +9,6 @@
     "autoload": {
         "psr-4": {
             "Lib\\components\\": "Lib/components",
-            "Lib\\banktwins\\": "Lib/banktwins",
             "Model\\": "model",
             "Lib\\interfaces\\": "Lib/interfaces",
             "Lib\\strategies\\": "Lib/strategies",

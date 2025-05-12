@@ -1,8 +1,8 @@
 <div class="row">
       <div class="col-xs-12">
             <div class="payment_module">
-                  <div class='emspayapplepay'>
-                        <form id="emspayapplepay_form" name="emspayapplepay_form" action="{$link->getModuleLink('emspayapplepay', 'payment')|escape:'html'}" method="post">
+                  <div class='xpateapplepay'>
+                        <form id="xpateapplepay_form" name="xpateapplepay_form" action="{$link->getModuleLink('xpateapplepay', 'payment')|escape:'html'}" method="post">
                               <p id="ginger_notification"></p>
                         </form>
                   </div>
@@ -11,7 +11,7 @@
 </div>
 <script type="text/javascript">
 
-      var applepay_isnt_available = "{l s='Apple Pay is not available for your device' mod='emspayapplepay' js=1}";
+      var applepay_isnt_available = "{l s='Apple Pay is not available for your device' d='Modules.Xpateapplepay.Payment' js=1}";
 
       if(!window.ApplePaySession)
       {

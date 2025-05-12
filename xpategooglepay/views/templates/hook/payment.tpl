@@ -32,9 +32,9 @@ a.xpategooglepay {
 <div class="row">
       <div class="col-xs-12">
             <p class="payment_module">
-                  <a class="xpategooglepay" href="{$link->getModuleLink('xpategooglepay', 'payment')|escape:'html'}" title="{l s='Pay by google Pay' mod='xpategooglepay'}">
+                  <a class="xpategooglepay" href="{$link->getModuleLink('xpategooglepay', 'payment')|escape:'html'}" title="{l s='Pay by Google Pay' d='Modules.Xpategooglepay.Payment'}">
                         <span class="googlelogo"><img src={$base_dir}modules/xpategooglepay/logo_bestelling.png></span>
-                        <span class="googletitle">{l s='Pay by google Pay' mod='xpategooglepay'}<span>
+                        <span class="googletitle">{l s='Pay by Google Pay' d='Modules.Xpategooglepay.Payment'}<span>
                   </a>
             </p>
       </div>
